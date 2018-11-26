@@ -1,0 +1,37 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "DeploymentUnitName": {
+      "type": "string",
+      "minLength": 1
+    }},
+  "variables": {
+    "DeploymentUnitAvailabiltySet": "[concat(parameters('DeploymentUnitName'),'AS')]"
+  },
+  "resources": [
+    {
+      "name": "[variables('DeploymentUnitAvailabiltySet')]",
+      "type": "Microsoft.Compute/availabilitySets",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2015-06-15",
+      "dependsOn": [],
+      "tags": {
+        "displayName": "[variables('DeploymentUnitAvailabiltySet')]"
+      },
+      "properties": {
+        "platformUpdateDomainCount": 1,
+        "platformFaultDomainCount": 1
+      }
+    }],
+  "outputs": {
+    "AvailabitySetName": {
+      "value": "[variables('DeploymentUnitAvailabiltySet')]",
+      "type": "string"
+    },
+    "WebPoolAvailabitySetId": {
+      "value": "[resourceId('Microsoft.Computer/availabilitySets', variables('DeploymentUnitAvailabiltySet'))]",
+      "type": "string"
+    }
+  }
+}

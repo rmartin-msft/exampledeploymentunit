@@ -1,0 +1,196 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "storageAccountId": {
+      "type": "string"
+    },
+    "loadBalancerId": {
+      "type": "string"
+    },
+    "WebServerCount": {
+      "type": "int",
+      "defaultValue": 2
+    },
+    "WebServerInstanceName": {
+      "type": "string",
+      "minLength": 1
+    },
+    "WebServerInstanceAdminUserName": {
+      "type": "string",
+      "minLength": 1
+    },
+    "WebServerInstanceAdminPassword": {
+      "type": "securestring"
+    },
+    "WebServerInstanceWindowsOSVersion": {
+      "type": "string",
+      "defaultValue": "2012-R2-Datacenter",
+      "allowedValues": [
+        "2008-R2-SP1",
+        "2012-Datacenter",
+        "2012-R2-Datacenter",
+        "Windows-Server-Technical-Preview"
+      ]
+    },
+    "storageAccountName": {
+      "type": "string"
+    },
+    "storageAccountLocation": {
+      "type": "string"
+    },
+    "storageAccountResourceGroup": {
+      "type": "string"
+    },
+    "virtualNetworkLocation": {
+      "type": "string"
+    },
+    "virtualNetworkResourceGroup": {
+      "type": "string"
+    },
+    "WebPoolAvailabitySetId": {
+      "type": "string"
+    },
+    "_artifactsLocation": {
+      "type": "string",
+      "metadata": {
+        "description": "Auto-generated container in staging storage account to receive post-build staging folder upload"
+      }
+    },
+    "_artifactsLocationSasToken": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Auto-generated token to access _artifactsLocation"
+      }
+    }
+  },
+  "variables": {
+    "WebServerInstanceImagePublisher": "MicrosoftWindowsServer",
+    "WebServerInstanceImageOffer": "WindowsServer",
+    "WebServerInstanceOSDiskName": "WebServerInstanceOSDisk",
+    "WebServerInstanceVmSize": "Standard_D2_v2",
+    "WebServerInstanceVnetID": "[resourceId(parameters('virtualNetworkResourceGroup'), 'Microsoft.Network/virtualNetworks', 'PrivateNetwork')]",
+    "WebServerInstanceSubnetRef": "[concat(variables('WebServerInstanceVnetID'), '/subnets/', 'PrivateSubnet1')]",
+    "WebServerInstanceStorageAccountContainerName": "vhds",
+    "WebServerInstanceNicName": "[concat(parameters('WebServerInstanceName'), 'NetworkInterface')]",
+    "ConfigureWebServerArchiveFolder": "DSC",
+    "ConfigureWebServerArchiveFileName": "ConfigureWebServer.zip"},
+  "resources": [
+    {
+      "name": "[concat('Nic1', variables('WebServerInstanceNicName'),copyIndex(1))]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "location": "[parameters('virtualNetworkLocation')]",
+      "apiVersion": "2016-03-30",
+      "dependsOn": [ ],
+      "tags": {
+        "displayName": "WebServerInstanceNic"
+      },
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "[concat('sub1ipconfig',copyIndex(1))]",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "subnet": {
+                "id": "[variables('WebServerInstanceSubnetRef')]"
+              },
+              "loadBalancerBackendAddressPools": [
+                { "id": "[concat(parameters('loadBalancerId'), '/backendAddressPools/BackendPool1')]" }
+              ]
+            }
+          }
+        ]
+      },
+      "copy": {
+        "name": "privateIpCopy",
+        "count": "[parameters('WebServerCount')]"
+      }
+    },
+    {
+
+      "apiVersion": "2015-06-15",
+      "copy": {
+        "name": "webCopy",
+        "count": "[parameters('WebServerCount')]"
+      },
+      "name": "[concat(parameters('WebServerInstanceName'),copyIndex(1))]",
+      "type": "Microsoft.Compute/virtualMachines",
+      "location": "[parameters('storageAccountLocation')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkInterfaces', concat('Nic1',variables('WebServerInstanceNicName'),copyIndex(1)))]"     
+      ],
+      "tags": {
+        "displayName": "WebServerInstance"
+      },
+      "properties": {
+        "availabilitySet": {
+          "id": "[parameters('WebPoolAvailabitySetId')]"
+        },
+        "hardwareProfile": {
+          "vmSize": "[variables('WebServerInstanceVmSize')]"
+        },
+        "osProfile": {
+          "computerName": "[concat(parameters('WebServerInstanceName'), copyIndex(1))]",
+          "adminUsername": "[parameters('WebServerInstanceAdminUsername')]",
+          "adminPassword": "[parameters('WebServerInstanceAdminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "[variables('WebServerInstanceImagePublisher')]",
+            "offer": "[variables('WebServerInstanceImageOffer')]",
+            "sku": "[parameters('WebServerInstanceWindowsOSVersion')]",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "[concat('OSDiskWebServerInstance',copyIndex(1))]",
+            "vhd": {
+              "uri": "[concat(reference(resourceId(parameters('storageAccountResourceGroup'), 'Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2016-01-01').primaryEndpoints.blob, variables('WebServerInstanceStorageAccountContainerName'), '/', variables('WebServerInstanceOSDiskName'), copyIndex(1), '.vhd')]"
+            },
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', concat('Nic1', variables('WebServerInstanceNicName'),copyIndex(1)))]"
+            }
+          ]
+        }
+      },
+      "resources": [
+        {
+          "name": "Microsoft.Powershell.DSC",
+          "type": "extensions",
+          "location": "[parameters('storageAccountLocation')]",
+          "apiVersion": "2016-03-30",
+          "dependsOn": [
+            "[resourceId('Microsoft.Compute/virtualMachines', concat(parameters('WebServerInstanceName'),copyIndex(1)))]"
+          ],
+          "tags": {
+            "displayName": "ConfigureWebServer"
+          },
+          "properties": {
+            "publisher": "Microsoft.Powershell",
+            "type": "DSC",
+            "typeHandlerVersion": "2.9",
+            "autoUpgradeMinorVersion": true,
+            "settings": {
+              "configuration": {
+                "url": "[concat(parameters('_artifactsLocation'), '/', variables('ConfigureWebServerArchiveFolder'), '/', variables('ConfigureWebServerArchiveFileName'))]",
+                "script": "ConfigureWebServer.ps1",
+                "function": "Main"
+              },
+              "configurationArguments": {
+                "nodeName": "[concat(parameters('WebServerInstanceName'),copyIndex(1))]"
+              }
+            },
+            "protectedSettings": {
+              "configurationUrlSasToken": "[parameters('_artifactsLocationSasToken')]"
+            }
+          }
+        }
+      ]
+    }],
+  "outputs": {}
+}

@@ -1,0 +1,47 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|AnyCPU">
+      <Configuration>Debug</Configuration>
+      <Platform>AnyCPU</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|AnyCPU">
+      <Configuration>Release</Configuration>
+      <Platform>AnyCPU</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>a37b256b-9822-4d9c-b613-416b91879584</ProjectGuid>
+  </PropertyGroup>
+  <PropertyGroup>
+    <PrepareForBuildDependsOn>
+    </PrepareForBuildDependsOn>
+  </PropertyGroup>
+  <Import Condition=" Exists('Deployment.targets') " Project="Deployment.targets" />
+  <Import Project="$(MSBuildToolsPath)\Microsoft.Common.targets" />
+  <!-- vertag<:>start tokens<:>maj.min -->
+  <Import Condition=" Exists('$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Deployment\1.1\DeploymentProject.targets') " Project="$(MSBuildExtensionsPath)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Deployment\1.1\DeploymentProject.targets" />
+  <!-- vertag<:>end -->
+  <ItemGroup>
+    <Content Include="azuredeploy.json" />
+    <Content Include="azuredeploy.parameters.json" />
+    <None Include="Deployment.targets">
+      <Visible>False</Visible>
+    </None>
+    <Content Include="Deploy-AzureResourceGroup.ps1" />
+    <Content Include="nestedtemplates\createVirtualNetwork.json" />
+    <Content Include="nestedtemplates\createVirtualNetwork.parameters.json" />
+    <Content Include="nestedtemplates\createWebServer.json" />
+    <Content Include="nestedtemplates\createWebServer.parameters.json" />
+    <Content Include="nestedtemplates\CreateDeploymentStorage.json" />
+    <Content Include="nestedtemplates\CreateDeploymentStorage.parameters.json" />
+    <Content Include="nestedtemplates\createPublicVipAddress.json" />
+    <Content Include="nestedtemplates\createPublicVipAddress.parameters.json" />
+    <Content Include="nestedtemplates\createWebServerPool.json" />
+    <Content Include="nestedtemplates\createWebServerPool.parameters.json" />
+    <Content Include="nestedtemplates\createLoadBalancer.json" />
+    <Content Include="nestedtemplates\createLoadBalancer.parameters.json" />
+    <Content Include="DSC\ConfigureWebServer.ps1" />
+  </ItemGroup>
+  <Target Name="GetReferenceAssemblyPaths" />
+</Project>

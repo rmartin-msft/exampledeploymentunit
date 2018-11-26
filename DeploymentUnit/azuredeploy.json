@@ -1,0 +1,214 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "DeploymentUnitPrefix": {
+      "type": "string",
+      "defaultValue": "dux"
+    },
+    "ServiceName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the service to create a suitable DNS lookup for the public IP address"
+      }
+    },
+    "WebServerCount": {
+      "type": "int",
+      "defaultValue": 1
+    },
+    "_artifactsLocation": {
+      "type": "string"
+    },
+    "_artifactsLocationSasToken": {
+      "type": "securestring"
+    },
+    "webserverAdminUsername": {
+      "type": "string"
+    },
+    "webserverAdminPassword": {
+      "type": "string"
+    }
+  },
+  "variables": {
+    "createVirtualNetworkTemplateFolder": "nestedtemplates",
+    "createVirtualNetworkTemplateFileName": "createVirtualNetwork.json",
+    "createVirtualNetworkTemplateParametersFileName": "createVirtualNetwork.parameters.json",
+    "createWebServerTemplateFolder": "nestedtemplates",
+    "createWebServerTemplateFileName": "createWebServer.json",
+    "createWebServerTemplateParametersFileName": "createWebServer.parameters.json",
+    "CreateDeploymentStorageTemplateFolder": "nestedtemplates",
+    "CreateDeploymentStorageTemplateFileName": "CreateDeploymentStorage.json",
+    "CreateDeploymentStorageTemplateParametersFileName": "CreateDeploymentStorage.parameters.json",
+    "createPublicVipAddressTemplateFolder": "nestedtemplates",
+    "createPublicVipAddressTemplateFileName": "createPublicVipAddress.json",
+    "createPublicVipAddressTemplateParametersFileName": "createPublicVipAddress.parameters.json",
+    "createWebServerPoolTemplateFolder": "nestedtemplates",
+    "createWebServerPoolTemplateFileName": "createWebServerPool.json",
+    "createWebServerPoolTemplateParametersFileName": "createWebServerPool.parameters.json",
+    "createLoadBalancerTemplateFolder": "nestedtemplates",
+    "createLoadBalancerTemplateFileName": "createLoadBalancer.json",
+    "createLoadBalancerTemplateParametersFileName": "createLoadBalancer.parameters.json"},
+  "resources": [
+    {
+      "name": "createVirtualNetwork",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2016-09-01",
+      "dependsOn": [ ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(parameters('_artifactsLocation'), '/', variables('createVirtualNetworkTemplateFolder'), '/', variables('createVirtualNetworkTemplateFileName'), parameters('_artifactsLocationSasToken'))]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parametersLink": {
+          "uri": "[concat(parameters('_artifactsLocation'), '/', variables('createVirtualNetworkTemplateFolder'), '/', variables('createVirtualNetworkTemplateParametersFileName'), parameters('_artifactsLocationSasToken'))]",
+          "contentVersion": "1.0.0.0"
+        }
+      }
+    },
+    {
+      "name": "createWebServer",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2016-09-01",
+      "dependsOn": [
+        "Microsoft.Resources/deployments/createVirtualNetwork",
+        "Microsoft.Resources/deployments/createDeploymentStorage",
+        "Microsoft.Resources/deployments/createWebServerPool",
+        "Microsoft.Resources/deployments/createLoadBalancer"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(parameters('_artifactsLocation'), '/', variables('createWebServerTemplateFolder'), '/', variables('createWebServerTemplateFileName'), parameters('_artifactsLocationSasToken'))]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "loadBalancerId": {
+            "value": "[reference('createLoadBalancer').outputs.lbID.value]"
+          },
+          "storageAccountId": {
+            "value": "[reference('createDeploymentStorage').outputs.DUStorageId.value]"
+          },
+          "WebServerCount": {
+            "value": "[parameters('WebServerCount')]"
+          },
+          "webServerInstanceName": {
+            "value": "[concat(parameters('DeploymentUnitPrefix'),'WEBSRV')]"
+          },
+          "webServerInstanceAdminUserName": {
+            "value": "[parameters('webserverAdminUsername')]"
+          },
+          "webServerInstanceAdminPassword": {
+            "value": "[parameters('webserverAdminPassword')]"
+          },
+          "storageAccountName": {
+            "value": "[reference('CreateDeploymentStorage').outputs.DUStorageName.value]"
+          },
+          "storageAccountLocation": {
+            "value": "[resourceGroup().location]"
+          },
+          "storageAccountResourceGroup": {
+            "value": "[resourceGroup().name]"
+          },
+          "virtualNetworkLocation": {
+            "value": "[resourceGroup().location]"
+          },
+          "virtualNetworkResourceGroup": {
+            "value": "[resourceGroup().name]"
+          },
+          "WebPoolAvailabitySetId": {
+            "value": "[reference('createWebServerPool').outputs.WebPoolAvailabitySetId.value]"
+          },
+          "_artifactsLocation": {
+            "value": "[parameters('_artifactsLocation')]"
+          },
+          "_artifactsLocationSasToken": {
+            "value": "[parameters('_artifactsLocationSasToken')]"
+          }
+        }
+      }
+    },
+    {
+      "name": "CreateDeploymentStorage",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2016-09-01",
+      "dependsOn": [ ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(parameters('_artifactsLocation'), '/', variables('CreateDeploymentStorageTemplateFolder'), '/', variables('CreateDeploymentStorageTemplateFileName'), parameters('_artifactsLocationSasToken'))]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parametersLink": {
+          "uri": "[concat(parameters('_artifactsLocation'), '/', variables('CreateDeploymentStorageTemplateFolder'), '/', variables('CreateDeploymentStorageTemplateParametersFileName'), parameters('_artifactsLocationSasToken'))]",
+          "contentVersion": "1.0.0.0"
+        }
+      }
+    },
+    {
+      "name": "createPublicVipAddress",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2016-09-01",
+      "dependsOn": [ ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(parameters('_artifactsLocation'), '/', variables('createPublicVipAddressTemplateFolder'), '/', variables('createPublicVipAddressTemplateFileName'), parameters('_artifactsLocationSasToken'))]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "DeploymentUnitName": {
+            "value": "[parameters('DeploymentUnitPrefix')]"
+          },
+          "ServiceName": {
+            "value": "[parameters('ServiceName')]"
+          }
+        }
+      }
+    },
+    {
+      "name": "createWebServerPool",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2016-09-01",
+      "dependsOn": [ ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(parameters('_artifactsLocation'), '/', variables('createWebServerPoolTemplateFolder'), '/', variables('createWebServerPoolTemplateFileName'), parameters('_artifactsLocationSasToken'))]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "DeploymentUnitName": {
+            "value": "[parameters('DeploymentUnitPrefix')]"
+          }
+        }        
+      }
+    },
+    {
+      "name": "createLoadBalancer",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2016-09-01",
+      "dependsOn": [
+        "Microsoft.Resources/deployments/createPublicVipAddress"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(parameters('_artifactsLocation'), '/', variables('createLoadBalancerTemplateFolder'), '/', variables('createLoadBalancerTemplateFileName'), parameters('_artifactsLocationSasToken'))]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "DeploymentUnitName": {
+            "value": "[parameters('DeploymentUnitPrefix')]"
+          },
+          "publicIPAddressName": {
+            "value": "VipAddress"
+          },
+          "publicIPAddressId": {
+            "value": "[reference('createPublicVipAddress').outputs.VipAddressId.value]"
+          }
+        }
+      }
+    }],
+  "outputs": {}
+}

@@ -1,0 +1,44 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {},
+  "variables": {
+    "PrivateNetworkPrefix": "10.0.0.0/16",
+    "PrivateNetworkSubnet1Name": "PrivateSubnet1",
+    "PrivateNetworkSubnet1Prefix": "10.0.0.0/24",
+    "PrivateNetworkSubnet2Name": "PrivateSubnet2",
+    "PrivateNetworkSubnet2Prefix": "10.0.1.0/24"},
+  "resources": [
+    {
+      "name": "PrivateNetwork",
+      "type": "Microsoft.Network/virtualNetworks",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2016-03-30",
+      "dependsOn": [ ],
+      "tags": {
+        "displayName": "PrivateNetwork"
+      },
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "[variables('PrivateNetworkPrefix')]"
+          ]
+        },
+        "subnets": [
+          {
+            "name": "[variables('PrivateNetworkSubnet1Name')]",
+            "properties": {
+              "addressPrefix": "[variables('PrivateNetworkSubnet1Prefix')]"
+            }
+          },
+          {
+            "name": "[variables('PrivateNetworkSubnet2Name')]",
+            "properties": {
+              "addressPrefix": "[variables('PrivateNetworkSubnet2Prefix')]"
+            }
+          }
+        ]
+      }
+    }],
+  "outputs": {}
+}

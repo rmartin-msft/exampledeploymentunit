@@ -1,0 +1,36 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "DeploymentUnitName": {
+      "type": "string"
+    },
+    "ServiceName": {
+      "type": "string"
+    }
+  },
+  "variables": {
+    "VipAddress": "VipAddress"
+  },
+  "resources": [
+    {
+      "name": "[variables('VipAddress')]",
+      "apiVersion": "2017-03-01",
+      "type": "Microsoft.Network/publicIPAddresses",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "publicIPAllocationMethod": "dynamic" 
+          //,
+        //"dnsSettings": {
+        //  "domainNameLabel": "[concat(parameters('DeploymentUnitName'), parameters('ServiceName'))]"
+        //}
+      }
+    }
+  ],
+  "outputs": {
+    "VipAddressId": {
+      "value": "[resourceId('Microsoft.Network/publicIPAddresses', variables('VipAddress'))]",
+      "type": "string"
+    }
+  }
+}
